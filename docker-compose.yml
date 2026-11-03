@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: fastify_api_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fastify_api
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fastify_api_net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fastify_api_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    networks:
+      - fastify_api_net
+
+volumes:
+  postgres_data:
+
+networks:
+  fastify_api_net:
+    driver: bridge
