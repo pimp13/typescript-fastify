@@ -1,10 +1,12 @@
-export type Role = 'USER' | 'SUPER_ADMIN';
+export type Role = 'USER' | 'SUPER_ADMIN' | 'ADMIN_GENERAL';
 
 export type User = {
   id: string;
   name: string;
   email: string;
   role: Role;
+  isActive: boolean;
+  lastLogin: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -21,12 +23,15 @@ export type UpdateUserBody = Partial<{
   email: string;
   password: string;
   role: Role;
+  isActive: boolean;
 }>;
 
 export type ListUsersQuery = {
   search?: string;
   role?: Role;
 };
+
+const roleEnum = ['USER', 'SUPER_ADMIN', 'ADMIN_GENERAL'] as const;
 
 export const createUserBodySchema = {
   type: 'object',
@@ -36,7 +41,7 @@ export const createUserBodySchema = {
     name: { type: 'string', minLength: 2 },
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 6 },
-    role: { type: 'string', enum: ['USER', 'SUPER_ADMIN'] },
+    role: { type: 'string', enum: roleEnum },
   },
 } as const;
 
@@ -48,7 +53,8 @@ export const updateUserBodySchema = {
     name: { type: 'string', minLength: 2 },
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 6 },
-    role: { type: 'string', enum: ['USER', 'SUPER_ADMIN'] },
+    role: { type: 'string', enum: roleEnum },
+    isActive: { type: 'boolean' },
   },
 } as const;
 
@@ -57,6 +63,6 @@ export const listUsersQuerySchema = {
   additionalProperties: false,
   properties: {
     search: { type: 'string' },
-    role: { type: 'string', enum: ['USER', 'SUPER_ADMIN'] },
+    role: { type: 'string', enum: roleEnum },
   },
 } as const;

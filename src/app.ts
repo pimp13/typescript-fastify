@@ -5,6 +5,8 @@ import jwt from '@fastify/jwt';
 import healthRoutes from './routes/health.js';
 import usersRoutes from './modules/users/users.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
+import monitoringRoutes from './modules/monitoring/monitoring.routes.js';
+import requestMetricsPlugin from './plugins/request-metrics.js';
 
 export function buildApp() {
   const app = Fastify({
@@ -31,9 +33,12 @@ export function buildApp() {
     },
   });
 
+  app.register(requestMetricsPlugin);
+
   app.register(healthRoutes, { prefix: '/api' });
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(usersRoutes, { prefix: '/api/users' });
+  app.register(monitoringRoutes, { prefix: '/api/monitoring' });
 
   app.setNotFoundHandler((request, reply) => {
     return reply.code(404).send({

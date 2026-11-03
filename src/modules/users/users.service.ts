@@ -87,6 +87,10 @@ export async function updateUser(id: string, data: UpdateUserBody) {
     updateData.role = data.role;
   }
 
+  if (data.isActive !== undefined) {
+    updateData.isActive = data.isActive;
+  }
+
   if (data.password !== undefined) {
     updateData.password = await bcrypt.hash(data.password, 10);
   }
