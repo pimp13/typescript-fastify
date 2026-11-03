@@ -20,7 +20,7 @@ export function buildApp() {
   app.register(jwt, {
     secret: jwtSecret,
     cookie: {
-      cookieName: 'token',
+      cookieName: '__token_auth__',
       signed: false,
     },
   });

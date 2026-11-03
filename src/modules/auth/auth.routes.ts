@@ -11,8 +11,9 @@ import {
   RegisterBody,
   registerBodySchema,
 } from './auth.schema.js';
+import { requireLogin } from '../../hooks/requireLogin.js';
 
-const COOKIE_NAME = 'token';
+const COOKIE_NAME = '__token_auth__';
 const TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 const authRoutes: FastifyPluginAsync = async (app) => {
@@ -101,31 +102,26 @@ const authRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  app.get('/me', async (request, reply) => {
-    try {
-      await request.jwtVerify();
-    } catch {
-      return reply.code(401).send({
-        ok: false,
-        message: 'Unauthorized',
-      });
-    }
+  app.get(
+    '/me',
+    { preHandler: [requireLogin] },
+    async (request, reply) => {
+      const user = await getAuthUserById(request.user.sub);
 
-    const user = await getAuthUserById(request.user.sub);
+      if (!user) {
+        return reply.code(401).send({
+          ok: false,
+          message: 'Unauthorized',
+        });
+      }
 
-    if (!user) {
-      return reply.code(401).send({
-        ok: false,
-        message: 'Unauthorized',
-      });
-    }
-
-    return {
-      ok: true,
-      message: 'Authenticated user fetched successfully',
-      data: user,
-    };
-  });
+      return {
+        ok: true,
+        message: 'Authenticated user fetched successfully',
+        data: user,
+      };
+    },
+  );
 };
 
 export default authRoutes;
