@@ -33,6 +33,7 @@ export async function registerUser(data: RegisterBody) {
 export async function loginUser(data: LoginBody) {
   const user = await prisma.user.findUnique({
     where: { email: data.email },
+    select: { id: true, password: true }
   });
 
   if (!user) {
@@ -45,22 +46,23 @@ export async function loginUser(data: LoginBody) {
     return null;
   }
 
-  await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
       lastLogin: new Date(),
-    }
+    },
+    select: userPublicSelect
   });
 
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    isActive: user.isActive,
-    lastLogin: user.lastLogin,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    id: updatedUser.id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    isActive: updatedUser.isActive,
+    lastLogin: updatedUser.lastLogin,
+    createdAt: updatedUser.createdAt,
+    updatedAt: updatedUser.updatedAt,
   };
 }
 
