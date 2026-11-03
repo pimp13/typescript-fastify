@@ -14,10 +14,10 @@ export async function requireSuperAdmin(
 
   const user = await prisma.user.findUnique({
     where: { id: request.user.sub },
-    select: { role: true },
+    select: { role: true, isActive: true },
   });
 
-  if (!user || user.role !== 'SUPER_ADMIN') {
+  if (!user || user.role !== 'SUPER_ADMIN' || !user.isActive) {
     return reply.code(403).send({
       ok: false,
       message: 'Forbidden: super admin access required',
