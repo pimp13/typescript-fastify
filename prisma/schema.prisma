@@ -10,14 +10,22 @@ datasource db {
 enum Role {
   USER
   SUPER_ADMIN
+  ADMIN_GENERAL
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      Role     @default(USER)
+  role      Role      @default(USER)
+  isActive  Boolean   @default(true)
+  meta      Json?     @default("{}")
+  lastLogin DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([isActive, role])
+  @@index([createdAt])
 }
