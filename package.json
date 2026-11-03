@@ -10,10 +10,15 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
+    "@fastify/cors": "^11.3.1",
     "@fastify/jwt": "^10.2.6",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",

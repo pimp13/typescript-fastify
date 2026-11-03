@@ -1,24 +1,39 @@
 import { FastifyPluginAsync } from 'fastify';
+import { Prisma } from '@prisma/client';
+import { requireSuperAdmin } from '../../hooks/requireSuperAdmin.js';
 import {
+  countSuperAdmins,
   createUser,
   deleteUser,
   getUserById,
   listUsers,
   updateUser,
 } from './users.service.js';
-import { CreateUserBody, createUserBodySchema, UpdateUserBody, updateUserBodySchema } from './users.schema.js';
-import { Prisma } from '@prisma/client';
+import {
+  CreateUserBody,
+  createUserBodySchema,
+  ListUsersQuery,
+  listUsersQuerySchema,
+  UpdateUserBody,
+  updateUserBodySchema,
+} from './users.schema.js';
 
 const usersRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/', async () => {
-    const users = await listUsers();
+  app.addHook('preHandler', requireSuperAdmin);
 
-    return {
-      ok: true,
-      message: 'Users fetched successfully!',
-      data: users,
-    };
-  });
+  app.get<{ Querystring: ListUsersQuery }>(
+    '/',
+    { schema: { querystring: listUsersQuerySchema } },
+    async (request) => {
+      const users = await listUsers(request.query);
+
+      return {
+        ok: true,
+        message: 'Users fetched successfully',
+        data: users,
+      };
+    },
+  );
 
   app.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const user = await getUserById(request.params.id);
@@ -30,7 +45,11 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    return { ok: true, message: 'User fetched successfully', data: user };
+    return {
+      ok: true,
+      message: 'User fetched successfully',
+      data: user,
+    };
   });
 
   app.post<{ Body: CreateUserBody }>(
@@ -47,9 +66,7 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
         });
       } catch (error: unknown) {
         if (
-          typeof error === 'object' &&
-          error !== null &&
-          'code' in error &&
+          error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === 'P2002'
         ) {
           return reply.code(409).send({
@@ -63,32 +80,94 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  app.patch<{ Params: { id: string }, Body: UpdateUserBody }>(
+  app.patch<{ Params: { id: string }; Body: UpdateUserBody }>(
     '/:id',
     { schema: { body: updateUserBodySchema } },
     async (request, reply) => {
+      const existing = await getUserById(request.params.id);
+
+      if (!existing) {
+        return reply.code(404).send({
+          ok: false,
+          message: 'User not found',
+        });
+      }
+
+      if (
+        existing.role === 'SUPER_ADMIN' &&
+        request.body.role === 'USER' &&
+        existing.id === request.user.sub
+      ) {
+        return reply.code(400).send({
+          ok: false,
+          message: 'You cannot demote your own super admin account',
+        });
+      }
+
+      if (
+        existing.role === 'SUPER_ADMIN' &&
+        request.body.role === 'USER'
+      ) {
+        const superAdminCount = await countSuperAdmins();
+        if (superAdminCount <= 1) {
+          return reply.code(400).send({
+            ok: false,
+            message: 'At least one super admin must remain',
+          });
+        }
+      }
+
       try {
         const updatedUser = await updateUser(request.params.id, request.body);
 
-        return reply.code(200).send({
+        return {
           ok: true,
           message: 'User updated successfully',
           data: updatedUser,
-        });
+        };
       } catch (error: unknown) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-          if (error.code === 'P2002') {
-            return reply.code(409).send({
-              ok: false,
-              message: 'Email already exists',
-            });
-          }
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          return reply.code(409).send({
+            ok: false,
+            message: 'Email already exists',
+          });
         }
+
+        throw error;
       }
-    }
+    },
   );
 
   app.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    if (request.params.id === request.user.sub) {
+      return reply.code(400).send({
+        ok: false,
+        message: 'You cannot delete your own account',
+      });
+    }
+
+    const existing = await getUserById(request.params.id);
+
+    if (!existing) {
+      return reply.code(404).send({
+        ok: false,
+        message: 'User not found',
+      });
+    }
+
+    if (existing.role === 'SUPER_ADMIN') {
+      const superAdminCount = await countSuperAdmins();
+      if (superAdminCount <= 1) {
+        return reply.code(400).send({
+          ok: false,
+          message: 'At least one super admin must remain',
+        });
+      }
+    }
+
     const deletedUser = await deleteUser(request.params.id);
 
     if (!deletedUser) {

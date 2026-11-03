@@ -1,5 +1,6 @@
 import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
+import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import healthRoutes from './routes/health.js';
 import usersRoutes from './modules/users/users.routes.js';
@@ -15,6 +16,11 @@ export function buildApp() {
   if (!jwtSecret) {
     throw new Error('JWT_SECRET environment variable is required');
   }
+
+  app.register(cors, {
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
+    credentials: true,
+  });
 
   app.register(cookie);
   app.register(jwt, {

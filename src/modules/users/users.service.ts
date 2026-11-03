@@ -1,17 +1,38 @@
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
-import { CreateUserBody, UpdateUserBody } from './users.schema.js';
+import type {
+  CreateUserBody,
+  ListUsersQuery,
+  UpdateUserBody,
+} from './users.schema.js';
 
 const userPublicSelect = {
   id: true,
   name: true,
   email: true,
+  role: true,
   createdAt: true,
   updatedAt: true,
 } as const;
 
-export async function listUsers() {
+export async function listUsers(query: ListUsersQuery = {}) {
+  const where: Prisma.UserWhereInput = {};
+
+  if (query.role) {
+    where.role = query.role;
+  }
+
+  if (query.search?.trim()) {
+    const search = query.search.trim();
+    where.OR = [
+      { name: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+
   return prisma.user.findMany({
+    where,
     orderBy: { createdAt: 'desc' },
     select: userPublicSelect,
   });
@@ -32,6 +53,7 @@ export async function createUser(data: CreateUserBody) {
       name: data.name,
       email: data.email,
       password: hashedPassword,
+      role: data.role ?? 'USER',
     },
     select: userPublicSelect,
   });
@@ -49,31 +71,33 @@ export async function deleteUser(id: string) {
 }
 
 export async function updateUser(id: string, data: UpdateUserBody) {
-  try {
-    const updateData: {
-      name?: string;
-      email?: string;
-      password?: string;
-    } = {};
+  const updateData: Prisma.UserUpdateInput = {};
 
-    if (data.name !== undefined) {
-      updateData.name = data.name;
-    }
-
-    if (data.email !== undefined) {
-      updateData.email = data.email;
-    }
-
-    if (data.password !== undefined) {
-      updateData.password = await bcrypt.hash(data.password, 10);
-    }
-
-    return await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: userPublicSelect,
-    });
-  } catch {
-    throw new Error('Failed to update user');
+  if (data.name !== undefined) {
+    updateData.name = data.name;
   }
+
+  if (data.email !== undefined) {
+    updateData.email = data.email;
+  }
+
+  if (data.role !== undefined) {
+    updateData.role = data.role;
+  }
+
+  if (data.password !== undefined) {
+    updateData.password = await bcrypt.hash(data.password, 10);
+  }
+
+  return prisma.user.update({
+    where: { id },
+    data: updateData,
+    select: userPublicSelect,
+  });
+}
+
+export async function countSuperAdmins() {
+  return prisma.user.count({
+    where: { role: 'SUPER_ADMIN' },
+  });
 }

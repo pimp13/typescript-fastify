@@ -6,6 +6,7 @@ const userPublicSelect = {
   id: true,
   name: true,
   email: true,
+  role: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -18,6 +19,7 @@ export async function registerUser(data: RegisterBody) {
       name: data.name,
       email: data.email,
       password: hashedPassword,
+      role: 'USER',
     },
     select: userPublicSelect,
   });
@@ -42,6 +44,7 @@ export async function loginUser(data: LoginBody) {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
