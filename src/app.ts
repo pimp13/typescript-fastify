@@ -1,11 +1,16 @@
+import { join } from 'node:path';
 import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import healthRoutes from './routes/health.js';
 import usersRoutes from './modules/users/users.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import monitoringRoutes from './modules/monitoring/monitoring.routes.js';
+import chanRoutes from './modules/chan/chan.routes.js';
+import chanAdminRoutes from './modules/chan/chan.admin.routes.js';
 import requestMetricsPlugin from './plugins/request-metrics.js';
 
 export function buildApp() {
@@ -32,6 +37,17 @@ export function buildApp() {
       signed: false,
     },
   });
+  app.register(multipart, {
+    limits: {
+      fileSize: 20 * 1024 * 1024,
+      files: 1,
+    },
+  });
+  app.register(fastifyStatic, {
+    root: join(process.cwd(), 'uploads'),
+    prefix: '/uploads/',
+    decorateReply: false,
+  });
 
   app.register(requestMetricsPlugin);
 
@@ -39,6 +55,8 @@ export function buildApp() {
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(monitoringRoutes, { prefix: '/api/monitoring' });
+  app.register(chanRoutes, { prefix: '/api/chan' });
+  app.register(chanAdminRoutes, { prefix: '/api/admin/chan' });
 
   app.setNotFoundHandler((request, reply) => {
     return reply.code(404).send({

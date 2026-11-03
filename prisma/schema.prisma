@@ -26,6 +26,100 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  bansCreated Ban[] @relation("BanCreator")
+
   @@index([isActive, role])
   @@index([createdAt])
+}
+
+model Board {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  description     String   @default("")
+  isNsfw          Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  isWorksafe      Boolean  @default(true)
+  bumpLimit       Int      @default(300)
+  threadLimit     Int      @default(150)
+  maxFileSizeMb   Int      @default(5)
+  forceImage      Boolean  @default(false)
+  postCount       Int      @default(0)
+  sortOrder       Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  threads Thread[]
+  posts   Post[]
+
+  @@index([isActive, sortOrder])
+}
+
+model Thread {
+  id         String   @id @default(cuid())
+  boardId    String
+  subject    String?
+  isSticky   Boolean  @default(false)
+  isLocked   Boolean  @default(false)
+  replyCount Int      @default(0)
+  imageCount Int      @default(0)
+  bumpedAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  posts Post[]
+
+  @@index([boardId, isSticky, bumpedAt])
+  @@index([boardId, createdAt])
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  boardId     String
+  threadId    String
+  number      Int
+  isOp        Boolean  @default(false)
+  name        String   @default("Anonymous")
+  tripcode    String?
+  comment     String   @db.Text
+  fileName    String?
+  fileUrl     String?
+  fileMime    String?
+  fileSize    Int?
+  fileWidth   Int?
+  fileHeight  Int?
+  isSpoiler   Boolean  @default(false)
+  ipHash      String
+  userAgent   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board  Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, number])
+  @@index([threadId, createdAt])
+  @@index([boardId, createdAt])
+  @@index([ipHash])
+}
+
+model Ban {
+  id          String    @id @default(cuid())
+  ipHash      String
+  reason      String
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdBy User? @relation("BanCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([ipHash, isActive])
+  @@index([expiresAt])
 }
