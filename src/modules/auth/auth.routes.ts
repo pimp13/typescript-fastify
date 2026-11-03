@@ -115,6 +115,13 @@ const authRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
+      if (!user.isActive) {
+        return reply.code(403).send({
+          ok: false,
+          message: 'Forbidden: your account is not active',
+        });
+      }
+
       return {
         ok: true,
         message: 'Authenticated user fetched successfully',

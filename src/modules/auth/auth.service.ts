@@ -7,6 +7,8 @@ const userPublicSelect = {
   name: true,
   email: true,
   role: true,
+  isActive: true,
+  lastLogin: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -20,6 +22,9 @@ export async function registerUser(data: RegisterBody) {
       email: data.email,
       password: hashedPassword,
       role: 'USER',
+      isActive: true,
+      lastLogin: new Date(),
+      meta: {},
     },
     select: userPublicSelect,
   });
@@ -40,11 +45,20 @@ export async function loginUser(data: LoginBody) {
     return null;
   }
 
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastLogin: new Date(),
+    }
+  });
+
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
+    isActive: user.isActive,
+    lastLogin: user.lastLogin,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
