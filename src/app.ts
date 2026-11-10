@@ -8,6 +8,7 @@ import fastifyStatic from '@fastify/static';
 import healthRoutes from './routes/health.js';
 import usersRoutes from './modules/users/users.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
+import ssoRoutes from './modules/sso/sso.routes.js';
 import monitoringRoutes from './modules/monitoring/monitoring.routes.js';
 import chanRoutes from './modules/chan/chan.routes.js';
 import chanAdminRoutes from './modules/chan/chan.admin.routes.js';
@@ -53,6 +54,7 @@ export function buildApp() {
 
   app.register(healthRoutes, { prefix: '/api' });
   app.register(authRoutes, { prefix: '/api/auth' });
+  app.register(ssoRoutes, { prefix: '/api/sso' });
   app.register(usersRoutes, { prefix: '/api/users' });
   app.register(monitoringRoutes, { prefix: '/api/monitoring' });
   app.register(chanRoutes, { prefix: '/api/chan' });
