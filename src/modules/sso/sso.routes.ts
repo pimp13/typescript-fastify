@@ -53,7 +53,7 @@ const ssoRoutes: FastifyPluginAsync = async (app) => {
       const oauthState: SsoOAuthState = {
         state,
         codeVerifier: pkce?.verifier,
-        returnTo: sanitizeReturnTo(request.query.return_to),
+        returnTo: sanitizeReturnTo(request.query.return_to, cfg.frontendOrigins),
       };
 
       reply.setCookie(SSO_STATE_COOKIE, JSON.stringify(oauthState), stateCookieOptions);
@@ -208,10 +208,23 @@ async function upsertLookup(userId: string) {
   });
 }
 
-function sanitizeReturnTo(value?: string): string | undefined {
+function sanitizeReturnTo(value: string | undefined, allowedOrigins: string[]): string | undefined {
   if (!value) return undefined;
-  if (!value.startsWith('/') || value.startsWith('//')) return undefined;
-  return value;
+
+  if (value.startsWith('/') && !value.startsWith('//')) {
+    return value;
+  }
+
+  try {
+    const url = new URL(value);
+    const origin = `${url.protocol}//${url.host}`;
+    if (!allowedOrigins.includes(origin)) {
+      return undefined;
+    }
+    return url.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 function sendSsoError(reply: import('fastify').FastifyReply, error: unknown) {

@@ -6,6 +6,7 @@ export type SsoConfig = {
   redirectUri: string;
   scopes: string;
   requirePkce: boolean;
+  frontendOrigins: string[];
 };
 
 function required(name: string): string {
@@ -23,6 +24,11 @@ function boolEnv(name: string, fallback: boolean): boolean {
 }
 
 export function loadSsoConfig(): SsoConfig {
+  const frontendOrigins = (process.env.SSO_FRONTEND_ORIGINS ?? process.env.CORS_ORIGIN ?? 'http://localhost:3001')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
   return {
     issuerBaseUrl: (process.env.SSO_ISSUER_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, ''),
     apiPrefix: (process.env.SSO_API_PREFIX ?? '/api').replace(/\/$/, '') || '',
@@ -31,6 +37,7 @@ export function loadSsoConfig(): SsoConfig {
     redirectUri: required('SSO_REDIRECT_URI'),
     scopes: process.env.SSO_SCOPES?.trim() || 'openid profile email',
     requirePkce: boolEnv('SSO_REQUIRE_PKCE', true),
+    frontendOrigins,
   };
 }
 
